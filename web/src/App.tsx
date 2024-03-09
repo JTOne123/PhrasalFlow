@@ -1,13 +1,15 @@
 import React from "react";
 import "./App.css";
-import { Button, Stack } from "react-bootstrap";
+import { Button, Container, Nav, Navbar, Stack } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import "./i18n/config";
 import LocaleSwitcher from "./i18n/LocaleSwitcher";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
-import Verbs from "./Verbs";
-import VerbDetails from "./VerbDetails";
-import Home from "./Home";
+import Verbs from "./Pages/Verbs";
+import VerbDetails from "./Pages/VerbDetails";
+import Home from "./Pages/Home";
+import { Provider } from "react-redux";
+import store from "./Redux/store";
 
 function App() {
   const { t } = useTranslation();
@@ -23,32 +25,24 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
-      <Stack direction="horizontal" gap={2}>
-        <LocaleSwitcher />
-
-        <ul>
-          <li>
-            <Link to="/">main</Link>
-          </li>
-          <li>
-            <Link to="/verbs/1">verb details</Link>
-          </li>
-          <li>
-            <Link to="/verbs">list</Link>
-          </li>
-        </ul>
+    <Provider store={store}>
+      <BrowserRouter>
+        <Navbar expand="lg" className="bg-body-tertiary">
+          <Container>
+            <Navbar.Brand href="/">{t("Phrasal Flow")}</Navbar.Brand>
+            <Nav className="me-auto">
+              <Nav.Link href="/">{t("Home")}</Nav.Link>
+              <Nav.Link href="/verbs">{t("List")}</Nav.Link>
+            </Nav>
+            <Nav className="justify-content-end">
+              <LocaleSwitcher />
+            </Nav>
+          </Container>
+        </Navbar>
 
         <Routing />
-
-        <Button as="a" variant="primary">
-          {t("greeting")}
-        </Button>
-        <Button as="a" variant="success">
-          {t("greeting2")}
-        </Button>
-      </Stack>
-    </BrowserRouter>
+      </BrowserRouter>
+    </Provider>
   );
 }
 
