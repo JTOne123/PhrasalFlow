@@ -9,7 +9,7 @@ import Verbs from "./Pages/Verbs";
 import VerbDetails from "./Pages/VerbDetails";
 import Home from "./Pages/Home";
 import { Provider } from "react-redux";
-import store from "./Redux/store";
+import { store } from "./Redux/store";
 
 function App() {
   const { t } = useTranslation();
@@ -27,6 +27,7 @@ function App() {
   return (
     <Provider store={store}>
       <BrowserRouter>
+
         <Navbar expand="lg" className="bg-body-tertiary">
           <Container>
             <Navbar.Brand href="/">{t("Phrasal Flow")}</Navbar.Brand>
@@ -41,6 +42,7 @@ function App() {
         </Navbar>
 
         <Routing />
+        
       </BrowserRouter>
     </Provider>
   );

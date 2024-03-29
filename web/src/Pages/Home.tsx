@@ -1,50 +1,58 @@
-// Home.js
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { Stack } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import SearchBox from "../Components/SearchBox";
 import List from "../Components/List";
-import DataFetcher from "../Components/DataFetcher";
 import { useDispatch, useSelector } from "react-redux";
-import { Entity } from "../DTO/Entity";
-import { setError, setResults } from "../Redux/actions";
-
-type RootState = {
-    searchResults: Entity[] | null; // Replace YourEntityType with the actual type
-    error: string | null;
-    // Add other properties if present in your actual state
-  };
+import {
+  fetchVerbs,
+  LoadingStatus,
+  searchVerbsForGridResults,
+  selectAllVerbs,
+  VerbState,
+} from "../Redux/verbSlice";
 
 function Home() {
   const { t } = useTranslation();
-  const dispatch = useDispatch();
-  const { searchResults, error } = useSelector((state: RootState) => state);
   const [query, setQuery] = useState("");
 
   const handleSearch = (newQuery: any) => {
     setQuery(newQuery);
+
+    dispatch(searchVerbsForGridResults(newQuery));
   };
 
-  const handleSuccess = (data: any) => {
-    const mappedResults = data.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      // Map other properties as needed
-    }));
-    dispatch(setResults(mappedResults));
-  };
+  const dispatch = useDispatch();
 
-  const handleError = () => {
-    dispatch(setError());
-  };
+  const verbs: VerbState = useSelector(selectAllVerbs);
+
+  const verbStatus = useSelector((state: any) => {
+    return state.verbs.status;
+  });
+
+  const error = useSelector((state: any) => state.verbs.error);
+
+  useEffect(() => {
+    if (verbStatus === LoadingStatus.Idle) {
+      dispatch(fetchVerbs() as any);
+    }
+  }, [verbStatus, dispatch]);
+
+
+  let content;
+  if (verbStatus === LoadingStatus.Loading) {
+    content = <div>Loading...</div>;
+  } else if (verbStatus === LoadingStatus.Succeeded) {
+    content = <List results={verbs.gridResults} />;
+  } else if (verbStatus === LoadingStatus.Failed) {
+    content = <div>{error}</div>;
+  }
 
   return (
     <Stack direction="vertical" gap={2}>
       <h1>{t("Home")}</h1>
       <SearchBox onSearch={handleSearch} />
-      <DataFetcher query={query} onSuccess={handleSuccess} onError={handleError} />
-      <List results={searchResults} />
-      {error && <p>{error}</p>}
+      {content}
     </Stack>
   );
 }
