@@ -11,11 +11,11 @@ function ListItem({ item }: ListItemProps) {
 
   return (
     <Card style={{ width: "18rem" }}>
-      <Card.Img variant="top" src={"/images/" + item.ImageUrls[0]} />
+      <Card.Img variant="top" src={`/images/${item.ImageUrls[0]}`} />
       <Card.Body>
         <Card.Title>{item.Name}</Card.Title>
         <Card.Text>
-          {item.HeaderDescription ? item.FooterDescription : ""}
+          {item.HeaderDescription ?? item.FooterDescription}
         </Card.Text>
         <Button variant="primary">{t("Open details")}</Button>
       </Card.Body>

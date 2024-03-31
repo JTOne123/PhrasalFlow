@@ -5,6 +5,7 @@ import SearchBox from "../Components/SearchBox";
 import List from "../Components/List";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  changeLanguageVerbs,
   fetchVerbs,
   LoadingStatus,
   searchVerbsForGridResults,
@@ -13,7 +14,7 @@ import {
 } from "../Redux/verbSlice";
 
 function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
 
   const handleSearch = (newQuery: any) => {
@@ -34,10 +35,15 @@ function Home() {
 
   useEffect(() => {
     if (verbStatus === LoadingStatus.Idle) {
-      dispatch(fetchVerbs() as any);
+      dispatch(fetchVerbs(i18n.resolvedLanguage ?? "") as any);
     }
-  }, [verbStatus, dispatch]);
+  }, [verbStatus]);
 
+  useEffect(() => {
+    if (verbStatus === LoadingStatus.Succeeded) {
+      dispatch(changeLanguageVerbs(i18n.resolvedLanguage ?? "") as any);
+    }
+  }, [i18n.resolvedLanguage]);
 
   let content;
   if (verbStatus === LoadingStatus.Loading) {

@@ -1,7 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { Entity } from '../DTO/Entity';
+import { createSlice, createAsyncThunk, PayloadAction, AsyncThunkAction } from '@reduxjs/toolkit'
 import axios, { AxiosResponse } from 'axios';
 import { Data } from '../DTO/Data';
+import { Entity } from '../DTO/Entity';
+import { AsyncThunkConfig } from '@reduxjs/toolkit/dist/createAsyncThunk';
 
 export enum LoadingStatus {
   Idle = 'idle',
@@ -11,31 +12,46 @@ export enum LoadingStatus {
 }
 
 export interface VerbState {
-  data: Data | null,
+  language: string | null,
+  data: { [key: string]: Data } | null;
   gridResults: Entity[] | null,
   status: LoadingStatus,
   error: string | undefined | null,
 }
 
 const initialState : VerbState = {
+  language: null,
   data: null,
   gridResults: null,
   status: LoadingStatus.Idle,
   error: null,
 }
 
-export const fetchVerbs = createAsyncThunk('verbs/fetchVerbs', async () => {
-  const response: AxiosResponse<Data> = await axios.get(`http://localhost:8080/uk.json`);
-  return response.data;
+export interface FetchResult
+{
+  Data: Data,
+  Language: string
+}
+
+const fetchFunc = async (language: string) => {
+  const response: AxiosResponse<Data> = await axios.get(`/data/${language}.json`);
+  const fetchResult: FetchResult = {Data: response.data, Language: language};
+  return fetchResult;
+}
+
+export const fetchVerbs = createAsyncThunk<FetchResult, string>('verbs/fetchVerbs', async (language: string) => {
+  return await fetchFunc(language);
 });
 
-export const testOne1 = createAsyncThunk(
-  "verbSlice/testOne",
-  async (amount: number) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return amount;
+export const changeLanguageVerbs = createAsyncThunk<FetchResult, string, AsyncThunkConfig>('verbs/changeLanguageVerbs', async (language, thunkAPI) => {
+  const state: any = thunkAPI.getState();
+  
+  if (state.verbs.data !== null && state.verbs.data[language] !== undefined) {
+    return {Data: state.verbs.data[language], Language: language};
   }
-);
+
+  return await fetchFunc(language);
+});
 
 export const verbSlice = createSlice({
   name: 'verb',
@@ -50,23 +66,31 @@ export const verbSlice = createSlice({
       .addCase(fetchVerbs.pending, (state, action) => {
         state.status = LoadingStatus.Loading;
       })
-      .addCase(fetchVerbs.fulfilled, (state: VerbState, action: PayloadAction<Data>) => {
+      .addCase(fetchVerbs.fulfilled, (state: VerbState, action: PayloadAction<FetchResult>) => {
         state.status = LoadingStatus.Succeeded;
-        state.data = action.payload;
-        state.gridResults = action.payload.Recipes;
+        state.language = action.payload.Language;
+        state.data = state.data ?? {};
+        state.data[state.language] = action.payload.Data;
+        state.gridResults = state.data[state.language].Recipes;
       })
       .addCase(fetchVerbs.rejected, (state, action) => {
         state.status = LoadingStatus.Failed;
         state.error = action.error.message
       })
-      .addCase(testOne1.pending, () => {
-
+      .addCase(changeLanguageVerbs.pending, (state, action) => {
+        state.status = LoadingStatus.Loading;
       })
-      .addCase(testOne1.fulfilled,
-        (state, action: PayloadAction<number>) => {
-
-        }
-      );
+      .addCase(changeLanguageVerbs.fulfilled, (state: VerbState, action: PayloadAction<FetchResult>) => {
+        state.status = LoadingStatus.Succeeded;
+        state.language = action.payload.Language;
+        state.data = state.data ?? {};
+        state.data[state.language] = action.payload.Data;
+        state.gridResults = state.data[state.language].Recipes;
+      })
+      .addCase(changeLanguageVerbs.rejected, (state, action) => {
+        state.status = LoadingStatus.Failed;
+        state.error = action.error.message
+      });
   },
 });
 
@@ -82,7 +106,7 @@ export const selectAllVerbs = (state: any) => {
   return state.verbs;
 };
 
-export const selectVerbById = (state: any, verbId: number) =>
+const selectVerbById = (state: any, verbId: number) =>
 {
   if (state.data === null) {
     return null;
@@ -91,13 +115,17 @@ export const selectVerbById = (state: any, verbId: number) =>
   return state.data.Recipes.find((verb : Entity) => verb.Id === verbId);
 }
 
-export const searchVerbByText = (state: any, text: string) =>
+const searchVerbByText = (state: any, text: string) =>
 {
   if (state.data === null) {
     return null;
   }
 
-  let results: Entity[] = state.data.Recipes.filter((verb: Entity) => verb.Name.toLowerCase().includes(text.toLowerCase()));
+  let results: Entity[] = state.data[state.language].Recipes.filter((verb: Entity) => 
+    verb.Name?.toLowerCase().includes(text.toLowerCase()) || 
+    verb.HeaderDescription?.toLowerCase().includes(text.toLowerCase()) ||
+    verb.FooterDescription?.toLowerCase().includes(text.toLowerCase()) ||
+    verb.RecipeInstructions?.some((ingredient: string) => ingredient.toLowerCase().includes(text.toLowerCase())));
 
   return results;
 }
